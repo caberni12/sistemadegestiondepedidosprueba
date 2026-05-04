@@ -1,0 +1,11 @@
+VERIFICACIÓN - LISTADO PERSISTENTE ORDEN DE PEDIDOS
+
+Ajustes incluidos:
+1. La hoja correcta sigue siendo PEDIDOS.
+2. Orden de Pedidos muestra los datos de PEDIDOS cuando se presiona Sincronizar pedidos.
+3. Al sincronizar, guarda el último listado en memoria local del dispositivo.
+4. Al recargar la página, muestra inmediatamente el último listado sincronizado.
+5. No consulta Apps Script automáticamente al abrir; sólo usa memoria local hasta presionar Sincronizar pedidos.
+6. Botón Limpiar memoria para borrar sólo el listado guardado localmente.
+7. Se mantiene la URL actual configurada en config.txt.
+8. Se mantiene PDF A4/80mm, cantidad solicitada, ubicación sin cambiar y códigos como texto.

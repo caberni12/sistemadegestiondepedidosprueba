@@ -1,0 +1,9 @@
+Sistema de Gestión Servicios AS - Orden de Pedidos
+
+Ajuste aplicado:
+- Se agregó botón Cargar Lista en la cabecera de Orden de Pedidos.
+- Cargar Lista lee directamente la hoja PEDIDOS.
+- La tabla se llena con la información existente en PEDIDOS.
+- El listado cargado se guarda en localStorage para permanecer visible al recargar.
+- Sincronizar pedidos se mantiene para enviar pedidos locales pendientes y refrescar.
+- Se conserva Mostrar todo, PDF A4/80mm, cantidad solicitada, ubicación sin cambiar formato y códigos como texto.

@@ -1,0 +1,10 @@
+ENTREGA LISTA
+
+- Hoja usada por Orden de Pedidos: PEDIDOS.
+- Listado de hoja PEDIDOS: sólo al presionar Sincronizar pedidos.
+- No usa hoja ORDEN_PEDIDOS.
+- Checkbox Mostrar todo: disponible.
+- Códigos como texto: aplicado.
+- Cantidad solicitada en PDF A4/80mm: aplicado.
+- Ubicación: se mantiene sin cambiar formato.
+- Apps Script incluido: apps_script.gs.

@@ -1,0 +1,8 @@
+VERIFICACIÓN - CARGAR LISTA CORREGIDO
+
+- Botón Cargar Lista ahora usa JSONP primero para evitar CORS con Apps Script.
+- Si listar_pedidos_rapido responde OK pero vacío, continúa con listar_pedidos y listar_bd&sheet=PEDIDOS.
+- Ya no se queda vacío por un endpoint rápido sin filas.
+- Se usa una nueva clave de localStorage para evitar URLs antiguas guardadas en el navegador.
+- La hoja origen sigue siendo PEDIDOS.
+- La tabla se llena al presionar Cargar Lista y luego queda guardada localmente al recargar.

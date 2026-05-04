@@ -1,0 +1,11 @@
+VERIFICACIÓN DE ENTREGA
+
+Incluido:
+- Botón Enviar alerta nuevamente en listado.
+- Botón Enviar alerta nuevamente en modal de detalle.
+- Acción Apps Script: reenviar_alerta_pedido.
+- Columnas automáticas en PEDIDOS: alerta_token y alerta_ts.
+- La alerta se reactiva en otros dispositivos al cargar/sincronizar.
+- No duplica el pedido.
+- No altera ubicación ni cantidad.
+- Mantiene hoja PEDIDOS.

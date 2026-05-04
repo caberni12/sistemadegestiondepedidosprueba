@@ -1,0 +1,4 @@
+URL aplicada en este paquete:
+https://script.google.com/macros/s/AKfycbyAxO5ancu-usqRu2tGzY33IqTDCArFrjYRO-4RtqChRY9rtm0W36WGOxpBLqmCYUQCRA/exec
+
+Incluye reenviar alerta, cargar lista desde hoja PEDIDOS, sincronización manual y listado persistente.

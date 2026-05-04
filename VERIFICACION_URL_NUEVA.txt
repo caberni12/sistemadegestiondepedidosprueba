@@ -1,0 +1,18 @@
+Sistema de Gestión Servicios AS - Versión Web corregida
+
+URL configurada:
+https://script.google.com/macros/s/AKfycbyAxO5ancu-usqRu2tGzY33IqTDCArFrjYRO-4RtqChRY9rtm0W36WGOxpBLqmCYUQCRA/exec
+
+Base usada por Orden de Pedidos:
+PEDIDOS
+
+Comportamiento:
+- Orden de Pedidos lista los datos de la hoja PEDIDOS solo al presionar Sincronizar pedidos.
+- Mostrar todo permite ver todos los estados.
+- Sin Mostrar todo se ocultan los terminados.
+- Se mantiene envío rápido a Apps Script.
+- Se mantiene creador manual con Agregar producto.
+- Se mantiene MAESTRA local para completar descripción.
+- Se mantiene PDF A4 y 80mm con cantidad solicitada.
+- Se mantiene ubicación sin modificar formato.
+- Se mantienen códigos como texto para no perder ceros iniciales.
