@@ -40,7 +40,10 @@
       box-shadow:12px 0 30px rgba(2,6,23,.14);
       display:flex;flex-direction:column;gap:16px;z-index:5;transition:transform .22s ease,padding .22s ease,opacity .22s ease;overflow:hidden;
     }
-    .infra-brand{display:flex;align-items:center;gap:12px;padding:10px 10px 16px;border-bottom:1px solid rgba(255,255,255,.1)}
+    .infra-brand{display:flex;align-items:center;gap:12px;padding:10px 10px 16px;border-bottom:1px solid rgba(255,255,255,.1);position:relative}
+    .sidebar-mobile-close{display:none;margin-left:auto;width:38px;height:38px;border:none;border-radius:12px;background:rgba(239,68,68,.95);color:#fff;font-size:24px;font-weight:900;line-height:1;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:75}
+    .sidebar-mobile-close:hover{background:#dc2626;transform:scale(1.04)}
+    .sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(2,6,23,.52);backdrop-filter:blur(2px);z-index:55}
     .brand-logo{width:42px;height:42px;border-radius:16px;background:linear-gradient(135deg,var(--infra-primary),var(--infra-primary2));display:grid;place-items:center;color:white;font-weight:900;box-shadow:0 10px 30px rgba(20,184,166,.28)}
     .brand-title{font-size:1.1rem;font-weight:900;line-height:1.1;letter-spacing:.04em}.brand-subtitle{font-size:.75rem;color:var(--infra-muted);margin-top:3px}
     .infra-nav{display:flex;flex-direction:column;gap:8px;overflow:auto;padding-right:4px}
@@ -70,7 +73,7 @@
     .infra-shell.sidebar-collapsed .infra-content{padding-left:16px;}
     @media (max-width:1366px){html{font-size:13px}.infra-shell{grid-template-columns:236px 1fr}.quick-grid{gap:12px}.quick-card{min-height:118px;padding:15px}.infra-topbar{height:60px}.infra-content{padding:12px}.home-view,.module-view{inset:12px}.loading-overlay{inset:12px}}
     @media (max-width:1080px){.quick-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.status-grid{grid-template-columns:1fr}.page-subtitle{max-width:38vw}}
-    @media (max-width:760px){body{overflow:auto}.infra-shell{display:block;height:auto;min-height:100vh}.infra-sidebar{position:fixed;left:0;top:0;bottom:0;width:280px;transform:translateX(-105%);transition:.2s ease;z-index:60}.infra-sidebar.open{transform:translateX(0)}.infra-shell.sidebar-collapsed .infra-sidebar{padding:18px 14px;box-shadow:12px 0 30px rgba(2,6,23,.14);border-right:1px solid rgba(255,255,255,.08)}.infra-shell.sidebar-collapsed .infra-sidebar.open{transform:translateX(0)}.infra-shell.sidebar-collapsed .infra-sidebar>*{opacity:1;pointer-events:auto}.mobile-menu{display:inline-flex}.infra-main{height:100vh}.top-actions .infra-btn{padding:9px 10px}.page-subtitle{display:none}.infra-content{padding:10px}.home-view,.module-view,.loading-overlay{inset:10px}.quick-grid{grid-template-columns:1fr}.hero{padding:22px}.hero h2{font-size:1.55rem}.module-frame-wrap{border-radius:20px}.modal{align-items:flex-end;padding:0}.modal-card{width:100%;max-height:92vh;border-radius:24px 24px 0 0}}
+    @media (max-width:760px){.sidebar-mobile-close{display:flex}.sidebar-backdrop.show{display:block}body{overflow:auto}.infra-shell{display:block;height:auto;min-height:100vh}.infra-sidebar{position:fixed;left:0;top:0;bottom:0;width:280px;transform:translateX(-105%);transition:.2s ease;z-index:60}.infra-sidebar.open{transform:translateX(0)}.infra-shell.sidebar-collapsed .infra-sidebar{padding:18px 14px;box-shadow:12px 0 30px rgba(2,6,23,.14);border-right:1px solid rgba(255,255,255,.08)}.infra-shell.sidebar-collapsed .infra-sidebar.open{transform:translateX(0)}.infra-shell.sidebar-collapsed .infra-sidebar>*{opacity:1;pointer-events:auto}.mobile-menu{display:inline-flex}.infra-main{height:100vh}.top-actions .infra-btn{padding:9px 10px}.page-subtitle{display:none}.infra-content{padding:10px}.home-view,.module-view,.loading-overlay{inset:10px}.quick-grid{grid-template-columns:1fr}.hero{padding:22px}.hero h2{font-size:1.55rem}.module-frame-wrap{border-radius:20px}.modal{align-items:flex-end;padding:0}.modal-card{width:100%;max-height:92vh;border-radius:24px 24px 0 0}}
   
 
     /* =====================================================
@@ -269,10 +272,12 @@
 </head>
 <body>
   <div class="infra-shell" id="infraShell">
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
     <aside class="infra-sidebar" id="sidebar">
       <div class="infra-brand">
         <div class="brand-logo">AS</div>
         <div><div class="brand-title">Sistema de Gestión Servicios AS</div><div class="brand-subtitle">Servicios AS</div></div>
+        <button class="sidebar-mobile-close" id="btnCloseSidebar" type="button" aria-label="Cerrar menú lateral">×</button>
       </div>
       <nav class="infra-nav">
         <button class="nav-btn active" data-view="home"><span class="nav-icon">🏠</span><span>Inicio</span></button>
@@ -526,10 +531,20 @@
     }
 
     function isMobileView(){ return window.matchMedia('(max-width:760px)').matches; }
-    function closeSidebarMobile(){ if(isMobileView()) $('sidebar').classList.remove('open'); }
+    function closeSidebarMobile(){
+      if(isMobileView()){
+        $('sidebar').classList.remove('open');
+        if($('sidebarBackdrop')) $('sidebarBackdrop').classList.remove('show');
+      }
+    }
+    function openSidebarMobile(){
+      $('sidebar').classList.add('open');
+      if($('sidebarBackdrop')) $('sidebarBackdrop').classList.add('show');
+    }
     function toggleSidebar(){
       if(isMobileView()){
-        $('sidebar').classList.toggle('open');
+        if($('sidebar').classList.contains('open')) closeSidebarMobile();
+        else openSidebarMobile();
         return;
       }
       const shell = $('infraShell');
@@ -540,6 +555,8 @@
       $('infraShell').classList.add('sidebar-collapsed');
     }
     $('btnMobileMenu').addEventListener('click', toggleSidebar);
+    if($('btnCloseSidebar')) $('btnCloseSidebar').addEventListener('click', closeSidebarMobile);
+    if($('sidebarBackdrop')) $('sidebarBackdrop').addEventListener('click', closeSidebarMobile);
     $('btnHome').addEventListener('click', showHome);
     $('btnRefresh').addEventListener('click', refreshModule);
     $('btnConfigTop').addEventListener('click', openConfig);
@@ -555,6 +572,7 @@
       else $('configStatus').textContent = 'No se encontró API_URL en el archivo.';
       e.target.value = '';
     });
+    document.addEventListener('keydown', e=>{ if(e.key === 'Escape') closeSidebarMobile(); });
     updateBadges();
   </script>
   <script src="loader_buttons.js"></script>
