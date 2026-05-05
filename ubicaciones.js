@@ -3,7 +3,7 @@ let CARD_STATE = {}; // idFila => true (expandida) | false (colapsada)
    CONFIGURACIÓN
 ===================================================== */
 const DEFAULT_URL_GS =
-  'https://script.google.com/macros/s/AKfycbwgzLyX7uGanzaisMhPnVlLBrJfS5gAMJ4h3d-WQBsT8jhusb-CSokm9boANNiOyeE0Og/exec';
+  'https://script.google.com/macros/s/AKfycbx4h1Qdv9o09un6HM83MkcqxyHSjSBTpOBdB251J56PoSkz5sccDmSTVMpeF2Gs3UB95w/exec';
 const API_URL_STORAGE_KEY = 'sistema_pedidos_api_url';
 let URL_GS = '';
 
@@ -532,7 +532,7 @@ function eliminar(idFila, btn){
 
   fetch(URL_GS,{
     method:'POST',
-    body:JSON.stringify({accion:'eliminar',id:idFila})
+    body:JSON.stringify({accion:'eliminar_movimiento',id:idFila})
   })
   .then(()=>{ endBtnLoader(btn); cargar(); })
   .catch(()=>{ endBtnLoader(btn); alert('Error al eliminar'); });
@@ -574,7 +574,7 @@ function guardar(){
   fetch(URL_GS,{
     method:'POST',
     body:JSON.stringify({
-      accion: $('id').value ? 'editar' : 'agregar',
+      accion: $('id').value ? 'editar_movimiento' : 'guardar_movimiento',
       id: $('id').value,
       fecha_entrada: $('fecha_entrada').value,
       fecha_salida: $('fecha_salida').value,

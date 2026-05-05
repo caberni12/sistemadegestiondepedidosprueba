@@ -1,4 +1,4 @@
-const API_URL='https://script.google.com/macros/s/AKfycbwgzLyX7uGanzaisMhPnVlLBrJfS5gAMJ4h3d-WQBsT8jhusb-CSokm9boANNiOyeE0Og/exec';
+const API_URL='https://script.google.com/macros/s/AKfycbx4h1Qdv9o09un6HM83MkcqxyHSjSBTpOBdB251J56PoSkz5sccDmSTVMpeF2Gs3UB95w/exec';
 
 const state={
   pedidos:[],
@@ -55,7 +55,7 @@ function stopClickedLoader(e){
 window.addEventListener('DOMContentLoaded',()=>{
   bind();
   cargarTodo();
-  setInterval(verificarAlertas,2000);
+  setInterval(verificarAlertas,1000);
 });
 
 function bind(){
@@ -433,14 +433,14 @@ async function prepararActual(){
   const r=await api('preparar_pedido',{pedido:p.pedido,pikeador:pk});
   if(!r.ok)return toast(r.msg||'No se pudo enviar');
   voz('Pedido enviado a preparación'); toast('Pedido enviado a preparación');
-  await cargarTodo(); abrirModal(p.key);
+  await cargarTodo(); await verificarAlertas(); abrirModal(p.key);
 }
 async function reenviarActual(){
   const p=state.sel; if(!p)return;
   const r=await api('reenviar_alerta_pedido',{pedido:p.pedido,pikeador:$('selModalPikeador').value||p.pikeador||''});
   if(!r.ok)return toast(r.msg||'No se pudo reenviar');
   voz('Pedido enviado a preparación'); toast('Alerta reenviada');
-  await cargarTodo(); abrirModal(p.key);
+  await cargarTodo(); await verificarAlertas(); abrirModal(p.key);
 }
 async function verificarAlertas(){
   try{
