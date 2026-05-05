@@ -6,6 +6,7 @@ const state={
   pikeadores:[],
   maestra:[],
   maestraMap:{},
+  ubicacionesMap:{},
   maestraListaCargada:false,
   sel:null,
   importados:[],
@@ -107,8 +108,12 @@ function bind(){
 
 /* ================= CARGA PRINCIPAL ================= */
 async function cargarTodo(){
-  setStatus('Cargando hoja PEDIDOS...');
+  setStatus('Cargando hoja PEDIDOS y ubicaciones...');
   try{
+    const ubicacionesPromise=cargarUbicacionesPedido().catch(err=>{
+      console.warn('No se pudieron cargar ubicaciones múltiples', err);
+      return state.ubicacionesMap || {};
+    });
     let r=await api('listar_pedidos',{mostrarTodo:1});
     if(!r?.ok) throw new Error(r?.msg||'Respuesta inválida');
     state.pedidos=normPedidos(r);
@@ -116,8 +121,10 @@ async function cargarTodo(){
       const b=await api('listar_bd',{sheet:'PEDIDOS'}).catch(()=>null);
       if(b?.ok) state.pedidos=normPedidos(b);
     }
+    state.ubicacionesMap=await ubicacionesPromise;
+    aplicarUbicacionesAPedidos();
     filtrar();
-    setStatus('Conectado. Pedidos cargados: '+state.pedidos.length);
+    setStatus('Conectado. Pedidos cargados: '+state.pedidos.length+' | Productos con ubicaciones: '+Object.keys(state.ubicacionesMap||{}).length);
     marcarTokens();
   }catch(e){
     console.error(e);
@@ -186,7 +193,18 @@ function setMaestra(lista){
     ubicacion:String(p.ubicacion||'').trim()
   })).filter(p=>p.codigo||p.descripcion);
   state.maestraMap={};
-  state.maestra.forEach(p=>{ const k=normCodigo(p.codigo); if(k && !state.maestraMap[k]) state.maestraMap[k]=p; });
+  state.maestra.forEach(p=>{
+    const k=normCodigo(p.codigo);
+    if(!k) return;
+    if(!state.maestraMap[k]) state.maestraMap[k]={codigo:p.codigo,descripcion:p.descripcion,cantidad:0,ubicacion:''};
+    const acc=state.maestraMap[k];
+    if(!acc.descripcion && p.descripcion) acc.descripcion=p.descripcion;
+    acc.cantidad=(Number(acc.cantidad)||0)+(Number(p.cantidad)||0);
+    if(p.ubicacion){
+      const txt=textoUbicacionCantidad(p.ubicacion,p.cantidad);
+      acc.ubicacion=unirUbicacionTexto(acc.ubicacion,txt);
+    }
+  });
   state.maestraListaCargada=true;
   llenarDatalistMaestra();
 }
@@ -208,6 +226,100 @@ async function cargarMaestra(silencioso=true){
   if(msg) msg.textContent='MAESTRA sincronizada: '+state.maestra.length+' productos disponibles.';
   if(!silencioso) toast('MAESTRA sincronizada: '+state.maestra.length+' productos.');
   return state.maestra;
+}
+
+/* ================= UBICACIONES MÚLTIPLES POR PRODUCTO =================
+   No modifica Apps Script. Toma la respuesta actual de MOVIMIENTO/listar_ubicaciones_actuales
+   y acumula todas las ubicaciones del mismo código con su cantidad.
+================================================== */
+function textoUbicacionCantidad(ubicacion,cantidad){
+  const u=String(ubicacion||'').trim();
+  const c=String(cantidad??'').trim();
+  if(!u) return '';
+  return c && c!=='0' ? `${u} (${c})` : u;
+}
+function unirUbicacionTexto(actual,nuevo){
+  const n=String(nuevo||'').trim();
+  if(!n) return String(actual||'').trim();
+  const partes=String(actual||'').split('|').map(x=>x.trim()).filter(Boolean);
+  const baseNuevo=n.replace(/\s*\([^)]*\)\s*$/,'').trim().toUpperCase();
+  const yaExiste=partes.some(p=>p.replace(/\s*\([^)]*\)\s*$/,'').trim().toUpperCase()===baseNuevo);
+  if(yaExiste) return partes.join(' | ');
+  partes.push(n);
+  return partes.join(' | ');
+}
+function agregarUbicacionMultiple(map,codigo,ubicacion,cantidad){
+  const k=normCodigo(codigo);
+  const txt=textoUbicacionCantidad(ubicacion,cantidad);
+  if(!k || !txt) return;
+  map[k]=unirUbicacionTexto(map[k]||'',txt);
+}
+function parseUbicacionesPedido(r){
+  const out={};
+  const arr=r?.data||r?.rows||r?.values||r?.ubicaciones||r?.items||[];
+  const headers=Array.isArray(r?.headers)?r.headers:[];
+  const h=headers.map(norm);
+  const idx=(names)=>{ for(const name of names){ const i=h.indexOf(norm(name)); if(i>=0) return i; } return -1; };
+  const ix={
+    codigo:idx(['codigo','código','cod','sku','producto','codigo producto','código producto']),
+    ubicacion:idx(['ubicacion','ubicación','ubicaciones','bodega','ubic']),
+    cantidad:idx(['cantidad','stock','existencia','unidades','qty','cant']),
+    status:idx(['status','estado','vigencia'])
+  };
+  (Array.isArray(arr)?arr:[]).forEach(row=>{
+    if(Array.isArray(row)){
+      const estado=ix.status>=0 ? row[ix.status] : row[9];
+      const estadoNorm=norm(estado);
+      if(['RETIRADO','ELIMINADO','ANULADO','INACTIVO'].includes(estadoNorm)) return;
+      const codigo=ix.codigo>=0 ? row[ix.codigo] : row[5];
+      const ubicacion=ix.ubicacion>=0 ? row[ix.ubicacion] : row[4];
+      const cantidad=ix.cantidad>=0 ? row[ix.cantidad] : row[7];
+      agregarUbicacionMultiple(out,codigo,ubicacion,cantidad);
+      return;
+    }
+    if(row && typeof row==='object'){
+      const codigo=row.codigo||row.CODIGO||row['Código']||row['CÓDIGO']||row.cod||row.sku||row.producto||'';
+      if(Array.isArray(row.ubicaciones)){
+        row.ubicaciones.forEach(u=>{
+          if(u && typeof u==='object') agregarUbicacionMultiple(out,codigo,u.ubicacion||u.UBICACION||u['Ubicación']||u.ubic||u.bodega,u.cantidad||u.CANTIDAD||u.stock||u.unidades);
+          else agregarUbicacionMultiple(out,codigo,u,'');
+        });
+      }else{
+        agregarUbicacionMultiple(out,codigo,row.ubicacion||row.UBICACION||row['Ubicación']||row['UBICACIÓN']||row.ubic||row.bodega,row.cantidad||row.CANTIDAD||row.stock||row.unidades);
+      }
+    }
+  });
+  return out;
+}
+async function cargarUbicacionesPedido(){
+  const fuentes=[
+    ['listar_bd',{sheet:'MOVIMIENTO'}],
+    ['listar_bd',{sheet:'BD-MOVIMIENTO'}],
+    ['listar_movimiento',{}],
+    ['listar_ubicaciones_actuales',{}]
+  ];
+  let ultimoError=null;
+  for(const [accion,params] of fuentes){
+    try{
+      const r=await api(accion,params);
+      if(!r?.ok) throw new Error(r?.msg||('No se pudo leer '+accion));
+      const mapa=parseUbicacionesPedido(r);
+      if(Object.keys(mapa).length) return mapa;
+      ultimoError=new Error('Sin ubicaciones en '+accion);
+    }catch(err){ ultimoError=err; }
+  }
+  throw ultimoError||new Error('No se pudieron leer ubicaciones');
+}
+function aplicarUbicacionesAPedidos(){
+  const mapa=state.ubicacionesMap||{};
+  if(!Object.keys(mapa).length) return;
+  state.pedidos=state.pedidos.map(p=>{
+    const productos=(p.productos||[]).map(item=>{
+      const loc=mapa[normCodigo(item.codigo)]||'';
+      return loc ? {...item,ubicacion:loc} : item;
+    });
+    return {...p,productos};
+  });
 }
 function productoMaestraPorCodigo(codigo){
   const k=normCodigo(codigo);

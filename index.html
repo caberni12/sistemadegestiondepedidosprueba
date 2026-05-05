@@ -463,27 +463,71 @@
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download='config.txt'; a.click(); URL.revokeObjectURL(a.href);
     }
 
+    function formatLocationQty(ubicacion, cantidad){
+      const u = String(ubicacion || '').trim();
+      const c = String(cantidad ?? '').trim();
+      if(!u) return '';
+      return c && c !== '0' ? `${u} (${c})` : u;
+    }
+    function mergeLocationText(current, next){
+      const n = String(next || '').trim();
+      if(!n) return String(current || '').trim();
+      const parts = String(current || '').split('|').map(x => x.trim()).filter(Boolean);
+      const baseNext = n.replace(/\s*\([^)]*\)\s*$/, '').trim().toUpperCase();
+      const exists = parts.some(p => p.replace(/\s*\([^)]*\)\s*$/, '').trim().toUpperCase() === baseNext);
+      if(!exists) parts.push(n);
+      return parts.join(' | ');
+    }
+    function addProductLocation(map, codigo, ubicacion, cantidad){
+      const key = normalizeCode(codigo);
+      const txt = formatLocationQty(ubicacion, cantidad);
+      if(!key || !txt) return;
+      map[key] = mergeLocationText(map[key], txt);
+    }
+
     async function syncLocations(){
-      const url = getApiUrl(); setLoading(true); setStatus('Sincronizando ubicaciones desde MOVIMIENTO...');
+      const url = getApiUrl(); setLoading(true); setStatus('Sincronizando todas las ubicaciones desde MOVIMIENTO...');
       try{
-        const res = await fetch(url + '?accion=listar_ubicaciones_actuales&t=' + Date.now(), {cache:'no-store'});
-        const data = await res.json();
-        if(!(data && data.ok && Array.isArray(data.data))) throw new Error('Respuesta inválida de listar_ubicaciones_actuales');
+        const fuentes = [
+          url + '?accion=listar_bd&sheet=MOVIMIENTO&t=' + Date.now(),
+          url + '?accion=listar_bd&sheet=BD-MOVIMIENTO&t=' + Date.now(),
+          url + '?accion=listar_movimiento&t=' + Date.now(),
+          url + '?accion=listar_ubicaciones_actuales&t=' + Date.now()
+        ];
+        let data = null;
+        let lastError = null;
+        for(const fuente of fuentes){
+          try{
+            const res = await fetch(fuente, {cache:'no-store'});
+            const temp = await res.json();
+            if(temp && temp.ok && Array.isArray(temp.data) && temp.data.length){ data = temp; break; }
+            lastError = new Error((temp && temp.msg) || 'Respuesta sin datos');
+          }catch(err){ lastError = err; }
+        }
+        if(!(data && data.ok && Array.isArray(data.data))) throw (lastError || new Error('Respuesta inválida de ubicaciones'));
         const map = {};
         data.data.forEach(row=>{
-          let codigo='', ubic='';
-          if(Array.isArray(row)){ codigo = normalizeCode(row[5]); ubic = String(row[4] || '').trim(); }
-          else if(row && typeof row === 'object'){
-            codigo = normalizeCode(row.codigo);
-            if(Array.isArray(row.ubicaciones)){
-              ubic = row.ubicaciones.map(u => (u && typeof u === 'object') ? (u.cantidad ? `${u.ubicacion} (${u.cantidad})` : u.ubicacion) : String(u || '')).filter(Boolean).join(' | ');
-            }else ubic = String(row.ubicacion || '').trim();
+          if(Array.isArray(row)){
+            // MOVIMIENTO: [id, registro, entrada, salida, ubicacion, codigo, descripcion, cantidad, responsable, status, ...]
+            const estado = String(row[9] || '').trim().toUpperCase();
+            if(['RETIRADO','ELIMINADO','ANULADO','INACTIVO'].includes(estado)) return;
+            addProductLocation(map, row[5], row[4], row[7]);
           }
-          if(codigo && ubic && !map[codigo]) map[codigo] = ubic;
+          else if(row && typeof row === 'object'){
+            const codigo = row.codigo || row.CODIGO || row['Código'] || row['CÓDIGO'] || row.cod || row.sku || row.producto || '';
+            if(Array.isArray(row.ubicaciones)){
+              row.ubicaciones.forEach(u => {
+                if(u && typeof u === 'object') addProductLocation(map, codigo, u.ubicacion || u.UBICACION || u['Ubicación'] || u.ubic || u.bodega, u.cantidad || u.CANTIDAD || u.stock || u.unidades);
+                else addProductLocation(map, codigo, u, '');
+              });
+            }else{
+              addProductLocation(map, codigo, row.ubicacion || row.UBICACION || row['Ubicación'] || row['UBICACIÓN'] || row.ubic || row.bodega, row.cantidad || row.CANTIDAD || row.stock || row.unidades);
+            }
+          }
         });
         localStorage.setItem(UBICACIONES_CACHE_KEY, JSON.stringify(map));
         localStorage.setItem(UBICACIONES_CACHE_TS_KEY, String(Date.now()));
-        setStatus(`Ubicaciones sincronizadas: ${Object.keys(map).length} códigos guardados en memoria.`);
+        setStatus(`Ubicaciones sincronizadas: ${Object.keys(map).length} códigos con todas sus ubicaciones guardadas.`);
       }catch(e){ setStatus('No se pudo sincronizar ubicaciones: ' + e.message); }
       finally{ setLoading(false); updateBadges(); }
     }
